@@ -1,4 +1,5 @@
-/* Adapted/enhanced from reference code in RFC 1321
+/* MD5 algorithm
+   Adapted/enhanced from reference code in RFC 1321
    and optimised for size, both lower code size and *especially* lower RAM.
  
   Therefore : "derived from the RSA Data Security, Inc. MD5 Message-Digest Algorithm" :

@@ -1,4 +1,5 @@
-/* Optimised for size, both lower code size and *especially* low RAM.
+/*  SHA-256 algorithm
+    Optimised for size, both lower code size and *especially* low RAM.
    
    Note internal count is of bytes and whole is byte orientated.
    Also designed for 8 bit processors, so (exploiting fixed shifts of SHA)
@@ -48,7 +49,7 @@ static void Encode(char *,JOINED *,uint8_t len);
 #define MAJORITY(x,y,z) (((x)&(y))^((x)&(z))^((y)&(z)))
 
 #define ROTR(x,n)      (((x)<<(32-(n)))|((x)>>(n)))  // Works on uint32_t
-#define SROTR(x,n) ({ uint8_t tmp=(x).lsb<<(8-n);(x).word32>>=(n);(x).msb|=tmp;})  
+#define SROTR(x,n) ({ uint8_t tmp=(x).lsb<<(8-(n));(x).word32>>=(n);(x).msb|=tmp;})  
 // Short rotation, exploits change in just one byte.  Works on JOINED, with n<8
 
 #define XOR3(x,n1,n2)  ((x)^ROTR(x,n1)^ROTR(x,n2))  // XORs x with two version of itself ROTR'd by n1,n2

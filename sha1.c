@@ -1,4 +1,5 @@
-/* Optimised for size, both lower code size and *especially* low RAM.
+/* SHA-1 algorithm
+   Optimised for size, both lower code size and *especially* low RAM.
    
    Note internal count is of bytes and whole is byte orientated.
    Also designed for 8 bit processors, so (exploiting fixed shifts of SHA)
