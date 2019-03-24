@@ -53,7 +53,7 @@ while (True):
     m=hashlib.sha256()
     toproc=SHA256
   elif (msg[0:4].decode(encoding="ISO-8859-1")=="R160"):
-    m=hashlib.ripemd160()
+    m=hashlib.new('ripemd160')
     toproc=RIP160
   elif (msg[0:4].decode(encoding="ISO-8859-1")=="BUF="):
     for i in range(4,len(msg),1):
