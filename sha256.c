@@ -30,7 +30,8 @@ uniformly from 0 to 79 characters, varying segment to segment (i.e. not hash to 
 
 Network transmission is length,start point in LFSR,digest (i.e. not segment lengths)
 
-Also tested, manually, for "abc" test vector 
+Also tested, in debugger, for "abc" test vector and over network for some much 
+larger inputs (up to 750,000 characters)
 ---------------------------------------------------------------------------    
     
  */
@@ -52,20 +53,20 @@ static void Encode(char *,JOINED *,uint8_t len);
 #define SROTR(x,n) ({ uint8_t tmp=(x).lsb<<(8-(n));(x).word32>>=(n);(x).msb|=tmp;})  
 // Short rotation, exploits change in just one byte.  Works on JOINED, with n<8
 
-#define XOR3(x,n1,n2)  ((x)^ROTR(x,n1)^ROTR(x,n2))  // XORs x with two version of itself ROTR'd by n1,n2
+#define XOR3(x,n1,n2)  ((x)^ROTR((x),(n1))^ROTR((x),(n2)))  // XORs x with two version of itself ROTR'd by n1,n2
 //#define SIGMA0(x)   ((ROTR(x,2 ))^ROTR(x,13)^ROTR(x,22)) // Not used - optimised
 //#define SIGMA1(x)   ((ROTR(x,6 ))^ROTR(x,11)^ROTR(x,25))
 //#define sigma0(x)   ((ROTR(x,7 ))^ROTR(x,18)^((x)>>3 ))  // Not used - optimised
 //#define sigma1(x)   ((ROTR(x,17))^ROTR(x,19)^((x)>>10))
 
-#define a(S) ABCDEFGH[(0-S)&7] // S in range 0 to 63
-#define b(S) ABCDEFGH[(1-S)&7]
-#define c(S) ABCDEFGH[(2-S)&7]
-#define d(S) ABCDEFGH[(3-S)&7]
-#define e(S) ABCDEFGH[(4-S)&7]
-#define f(S) ABCDEFGH[(5-S)&7]
-#define g(S) ABCDEFGH[(6-S)&7]
-#define h(S) ABCDEFGH[(7-S)&7]
+#define a(S) ABCDEFGH[(0-(S))&7] // S in range 0 to 63
+#define b(S) ABCDEFGH[(1-(S))&7]
+#define c(S) ABCDEFGH[(2-(S))&7]
+#define d(S) ABCDEFGH[(3-(S))&7]
+#define e(S) ABCDEFGH[(4-(S))&7]
+#define f(S) ABCDEFGH[(5-(S))&7]
+#define g(S) ABCDEFGH[(6-(S))&7]
+#define h(S) ABCDEFGH[(7-(S))&7]
 
 
 // --------------------------------------------------------------------------------
@@ -102,7 +103,7 @@ if (inputLen>=partLen) {
   memcpy(&buffer[index+SHA256_BUF_OFFSET],input,partLen);       // Fill rest of line
   SHA256Transform(context);
 
-  for (i=partLen;(i+63)<inputLen;i+=SHA256_INPUT_BYTES) {
+  for (i=partLen;(i+SHA256_INPUT_BYTES-1)<inputLen;i+=SHA256_INPUT_BYTES) {
     memcpy(&buffer[SHA256_BUF_OFFSET],&input[i],SHA256_INPUT_BYTES);   // Whole line
     SHA256Transform(context);
   }
@@ -132,8 +133,8 @@ uint8_t restOfLine;
 
 index=(((uint8_t)context->count[SHA256_LSW])&0x3f);
 
-buffer[SHA256_BUF_OFFSET+index]=0x80;  // Indicator or last byte
-restOfLine=63-index;            // 63 accounts for 0x80
+buffer[SHA256_BUF_OFFSET+index]=0x80;     // Indicator for last byte
+restOfLine=SHA256_INPUT_BYTES-1-index;    // -1 accounts for 0x80
 
 memset(&buffer[SHA256_BUF_OFFSET+1+index],0,restOfLine);   // +1 because of 0x80 character
 if (restOfLine<SHA256_SIZE_BYTES) {                              // Can't fit on this line

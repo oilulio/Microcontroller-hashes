@@ -39,7 +39,8 @@ uniformly from 0 to 79 characters, varying segment to segment (i.e. not hash to 
 
 Network transmission is length,start point in LFSR,digest (i.e. not segment lengths)
 
-Also tested, manually, for RFC 1321 test vectors
+Also tested, in debugger, for RFC 1321 test vectors and over network for some 
+selected large (up to 750,000 character) inputs
 ---------------------------------------------------------------------------
  */
 #include "config.h"
@@ -59,15 +60,15 @@ static void Encode(char *,JOINED *,uint8_t len);
 #define XCHOOSE(x,y,z) (((x)&(y))|((~x)&(z)))  // x chooses y or z.  "|" can be "^"
 #define ZCHOOSE(x,y,z) (((z)&(x))|((~z)&(y)))  // z chooses x or y.  "|" can be "^"
 
-#define F(x,y,z) XCHOOSE(x,y,z)
-#define G(x,y,z) ZCHOOSE(x,y,z)
-#define H(x,y,z) PARITY(x,y,z)
+#define F(x,y,z) XCHOOSE((x),(y),(z))
+#define G(x,y,z) ZCHOOSE((x),(y),(z))
+#define H(x,y,z) PARITY((x),(y),(z))
 #define I(x,y,z) ((y)^((x)|(~z)))
 
-#define a(S) ABCD[(0-S)&3]
-#define b(S) ABCD[(1-S)&3]
-#define c(S) ABCD[(2-S)&3]
-#define d(S) ABCD[(3-S)&3]
+#define a(S) ABCD[(0-(S))&3]
+#define b(S) ABCD[(1-(S))&3]
+#define c(S) ABCD[(2-(S))&3]
+#define d(S) ABCD[(3-(S))&3]
 
 #define ROTL(x,n) (((x)<<(n))|((x)>>(32-(n))))
 // --------------------------------------------------------------------------------
@@ -130,7 +131,7 @@ uint8_t restOfLine;
 index=(((uint8_t)context->count[MD5_LSW])&0x3f);
 
 buffer[MD5_BUF_OFFSET+index]=0x80;  // Indicator or last byte
-restOfLine=63-index;            // 63 accounts for 0x80
+restOfLine=MD5_INPUT_BYTES-1-index;            // -1 accounts for 0x80
 
 memset(&buffer[MD5_BUF_OFFSET+1+index],0,restOfLine);   // +1 because of 0x80 character
 if (restOfLine<MD5_SIZE_BYTES) {                              // Can't fit on this line

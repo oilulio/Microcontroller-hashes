@@ -2,6 +2,10 @@
    Optimised for size, both lower code size and *especially* low RAM.
    
    Note internal count is of bytes and whole is byte orientated.
+   This means is non-standard compliant as can't hash a file larger 
+   than 2^61 bits = 2^53 bytes.  Not serious limitation for
+   microcontrollers!
+   
    Also designed for 8 bit processors, so (exploiting fixed shifts of SHA)
    utilises code to avoid shifting all 32 bits, where unnecessary.
    Significant speed improvement results (c15%), but messier code.
@@ -30,7 +34,8 @@ uniformly from 0 to 79 characters, varying segment to segment (i.e. not hash to 
 
 Network transmission is digest,length,start point in LFSR (i.e. not segment lengths)
 
-Also tested, manually, for "abc" test vector
+Also tested, in debugger, for "abc" test vector  in FIPS-180-1 
+and the 1,000,000 repetitions of 'a' test vector in FIPS-180-1 (c.130s at 16MHz)
 ---------------------------------------------------------------------------    
     
  */
@@ -48,14 +53,14 @@ static void Encode(char *,JOINED *,uint8_t len);
 #define CHOOSE(x,y,z)   (((x)&(y))|((~x)&(z)))  // x chooses y or z.  "|" can be "^"
 #define MAJORITY(x,y,z) (((x)&(y))^((x)&(z))^((y)&(z)))
 
-#define a(S) ABCDE[(100-S)%5] // Avoid negative %.  S in range 0 to 79
-#define b(S) ABCDE[(101-S)%5]
-#define c(S) ABCDE[(102-S)%5]
-#define d(S) ABCDE[(103-S)%5]
-#define e(S) ABCDE[(104-S)%5]
+#define a(S) ABCDE[(100-(S))%5] // Avoid negative %.  S in range 0 to 79
+#define b(S) ABCDE[(101-(S))%5]
+#define c(S) ABCDE[(102-(S))%5]
+#define d(S) ABCDE[(103-(S))%5]
+#define e(S) ABCDE[(104-(S))%5]
 
-#define SROTR(x,n) ({ uint8_t tmp=(x).lsb<<(8-n);(x).word32>>=(n);(x).msb|=tmp;})  
-#define SROTL(x,n) ({ uint8_t tmp=(x).msb>>(8-n);(x).word32<<=(n);(x).lsb|=tmp;})  
+#define SROTR(x,n) ({ uint8_t tmp=(x).lsb<<(8-(n));(x).word32>>=(n);(x).msb|=tmp;})  
+#define SROTL(x,n) ({ uint8_t tmp=(x).msb>>(8-(n));(x).word32<<=(n);(x).lsb|=tmp;})  
 // Short rotation, exploits change in just one byte.  Works on JOINED, with n<8
 
 // --------------------------------------------------------------------------------
@@ -88,7 +93,7 @@ if (inputLen>=partLen) {
   memcpy(&buffer[index+SHA1_BUF_OFFSET],input,partLen);       // Fill rest of line
   SHA1Transform(context);
 
-  for (i=partLen;(i+63)<inputLen;i+=SHA1_INPUT_BYTES) {
+  for (i=partLen;(i+SHA1_INPUT_BYTES-1)<inputLen;i+=SHA1_INPUT_BYTES) {
     memcpy(&buffer[SHA1_BUF_OFFSET],&input[i],SHA1_INPUT_BYTES);   // Whole line
     SHA1Transform(context);
   }
@@ -105,7 +110,7 @@ uint8_t restOfLine;
 index=(((uint8_t)context->count[SHA1_LSW])&0x3f);
 
 buffer[SHA1_BUF_OFFSET+index]=0x80;  // Indicator or last byte
-restOfLine=63-index;            // 63 accounts for 0x80
+restOfLine=SHA1_INPUT_BYTES-1-index;            // -1 accounts for 0x80
 
 memset(&buffer[SHA1_BUF_OFFSET+1+index],0,restOfLine);   // +1 because of 0x80 character
 if (restOfLine<SHA1_SIZE_BYTES) {                              // Can't fit on this line
